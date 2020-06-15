@@ -42,5 +42,5 @@
     "**/logs/*",
     "**/MediaCover/*"
   ],
-  "image": "linuxserver/lidarr}"
+  "image": "linuxserver/lidarr"
 }
