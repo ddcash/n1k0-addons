@@ -1,35 +1,27 @@
 {
   "name": "Almond",
-  "version": "1.0.1",
+  "version": "1.0.11",
   "slug": "almond",
   "description": "The home server version of Almond",
   "url": "https://github.com/home-assistant/hassio-addons/blob/master/almond",
   "arch": ["armv7", "aarch64", "amd64"],
   "startup": "application",
   "init": false,
-  "advanced": true,
   "boot": "auto",
   "discovery": ["almond"],
   "ingress": true,
   "panel_icon": "mdi:comment-eye-outline",
   "homeassistant": "0.102.0.dev",
   "homeassistant_api": true,
-  "hassio_api": true, 
-  "auth_api": true,
-  "ports": {
-    "3000/tcp": 3000
-  },
-  
-  "map": ["share:rw"],
-  "options": {
-    "base_url": "192.168.2.250",
-    "ha_almond_hostname": "192.168.2.250",
-    "ha_almond_port": "3001"
-  },
-   "schema": {
-    "base_url": "str",
-    "ha_almond_hostname": "str",
-    "ha_almond_port": "str"
-  },
+  "options": {},
+  "schema": {},
   "image": "homeassistant/{arch}-addon-almond"
+  
+  },
+  "ports": {
+    "3000/tcp": null
+  },
+  "ports_description": {
+    "3000/tcp": "Edge Agent Api (Enable when managing remote edge agents)"
+  },
 }
