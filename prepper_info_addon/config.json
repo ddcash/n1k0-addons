@@ -57,7 +57,7 @@
     "force_update": "bool"
   },
   "ports": {
-    "8080/tcp": 8080
+    "911/tcp": 911
   },
   "arch": ["amd64", "armv7", "aarch64"]
 }
