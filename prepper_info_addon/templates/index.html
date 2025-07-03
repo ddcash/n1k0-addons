@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Offline Prepper Library</title>
+  <style>
+    body { font-family: sans-serif; padding: 2em; background: #111; color: #eee; }
+    h1 { color: #66ff66; }
+    a { color: #33ccff; display: block; margin: 0.5em 0; }
+  </style>
+</head>
+<body>
+  <h1>Offline Prepper Library</h1>
+  <ul>
+    {% for file in files %}
+      <li><a href="/files/{{ file }}">{{ file }}</a></li>
+    {% endfor %}
+  </ul>
+</body>
+</html>

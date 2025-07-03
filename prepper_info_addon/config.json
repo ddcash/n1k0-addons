@@ -1,0 +1,47 @@
+{
+  "name": "Prepper Info Server",
+  "version": "1.2",
+  "slug": "prepper_info",
+  "description": "Offline access to survival and prepping data",
+  "startup": "application",
+  "boot": "auto",
+  "webui": "http://[HOST]:[PORT:8080]",
+  "options": {
+    "sources": [
+      {
+        "url": "https://example.com/guide.pdf",
+        "sha256": ""
+      }
+    ],
+    "github_mirrors": [
+      {
+        "repo": "https://github.com/example/prepper-docs.git",
+        "branch": "main",
+        "folder": "docs"
+      }
+    ],
+    "cron_schedule": "0 */6 * * *",
+    "force_update": false
+  },
+  "schema": {
+    "sources": [
+      {
+        "url": "str",
+        "sha256": "str?"
+      }
+    ],
+    "github_mirrors": [
+      {
+        "repo": "str",
+        "branch": "str",
+        "folder": "str"
+      }
+    ],
+    "cron_schedule": "str",
+    "force_update": "bool"
+  },
+  "ports": {
+    "8080/tcp": 8080
+  },
+  "arch": ["amd64", "armv7", "aarch64"]
+}
