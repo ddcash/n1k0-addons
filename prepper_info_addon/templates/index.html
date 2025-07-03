@@ -5,15 +5,19 @@
   <style>
     body { font-family: sans-serif; padding: 2em; background: #111; color: #eee; }
     h1 { color: #66ff66; }
-    a { color: #33ccff; display: block; margin: 0.5em 0; }
+    h2 { color: #33ccff; }
+    a { color: #ffcc00; display: block; margin: 0.2em 0; }
   </style>
 </head>
 <body>
   <h1>Offline Prepper Library</h1>
-  <ul>
-    {% for file in files %}
-      <li><a href="/files/{{ file }}">{{ file }}</a></li>
-    {% endfor %}
-  </ul>
+  {% for folder, files in categories.items() %}
+    <h2>{{ folder }}</h2>
+    <ul>
+      {% for file in files %}
+        <li><a href="/files/{{ folder }}/{{ file }}">{{ file }}</a></li>
+      {% endfor %}
+    </ul>
+  {% endfor %}
 </body>
 </html>

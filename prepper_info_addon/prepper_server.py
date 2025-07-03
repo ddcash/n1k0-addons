@@ -1,17 +1,22 @@
 from flask import Flask, send_from_directory, render_template
 import os
+from collections import defaultdict
 
 app = Flask(__name__)
 RESOURCE_DIR = "/data/resources"
 
 @app.route("/")
 def index():
-    files = []
+    categories = defaultdict(list)
     for root, dirs, filenames in os.walk(RESOURCE_DIR):
+        rel_path = os.path.relpath(root, RESOURCE_DIR)
+        if rel_path == ".":
+            category = "Uncategorized"
+        else:
+            category = rel_path
         for f in filenames:
-            path = os.path.relpath(os.path.join(root, f), RESOURCE_DIR)
-            files.append(path)
-    return render_template("index.html", files=files)
+            categories[category].append(f)
+    return render_template("index.html", categories=categories)
 
 @app.route("/files/<path:filename>")
 def serve_file(filename):
