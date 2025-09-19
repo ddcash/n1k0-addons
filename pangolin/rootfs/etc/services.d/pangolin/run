@@ -1,54 +1,44 @@
 #!/usr/bin/with-contenv bashio
-# ==============================================================================
-# Start Pangolin service
-# ==============================================================================
-
-declare port
-declare database
-declare log_level
-declare admin_email
-declare admin_password
-declare authentik_enabled
-declare authentik_url
-declare authentik_client_id
-declare authentik_client_secret
-declare authentik_auto_provision
 
 # Get configuration from Home Assistant
-port=$(bashio::config 'port')
-database=$(bashio::config 'database')
-log_level=$(bashio::config 'log_level')
-admin_email=$(bashio::config 'admin_email')
-admin_password=$(bashio::config 'admin_password')
-authentik_enabled=$(bashio::config 'authentik_enabled')
-authentik_url=$(bashio::config 'authentik_url')
-authentik_client_id=$(bashio::config 'authentik_client_id')
-authentik_client_secret=$(bashio::config 'authentik_client_secret')
-authentik_auto_provision=$(bashio::config 'authentik_auto_provision')
+PORT=$(bashio::config 'port')
+DATABASE=$(bashio::config 'database')
+LOG_LEVEL=$(bashio::config 'log_level')
+ADMIN_EMAIL=$(bashio::config 'admin_email')
+ADMIN_PASSWORD=$(bashio::config 'admin_password')
+
+# Authentik configuration
+AUTHENTIK_ENABLED=$(bashio::config 'authentik_enabled')
+AUTHENTIK_URL=$(bashio::config 'authentik_url')
+AUTHENTIK_CLIENT_ID=$(bashio::config 'authentik_client_id')
+AUTHENTIK_CLIENT_SECRET=$(bashio::config 'authentik_client_secret')
+AUTHENTIK_AUTO_PROVISION=$(bashio::config 'authentik_auto_provision')
 
 # Set environment variables
 export NODE_ENV=production
 export ENVIRONMENT=prod
-export DATABASE=${database:-sqlite}
-export PORT=${port:-3000}
-export LOG_LEVEL=${log_level:-info}
+export DATABASE=${DATABASE:-sqlite}
+export PORT=${PORT:-3000}
+export LOG_LEVEL=${LOG_LEVEL:-info}
 
 # Set Authentik environment variables if enabled
-if bashio::var.true "${authentik_enabled}" && bashio::var.has_value "${authentik_url}"; then
+if [ "$AUTHENTIK_ENABLED" = "true" ] && [ -n "$AUTHENTIK_URL" ]; then
     export OAUTH_PROVIDER_NAME="authentik"
-    export OAUTH_AUTHORIZATION_URL="${authentik_url}/application/o/authorize/"
-    export OAUTH_TOKEN_URL="${authentik_url}/application/o/token/"
-    export OAUTH_CLIENT_ID="${authentik_client_id}"
-    export OAUTH_CLIENT_SECRET="${authentik_client_secret}"
-    export OAUTH_AUTO_PROVISION="${authentik_auto_provision}"
-    bashio::log.info "Authentik SSO enabled with URL: ${authentik_url}"
+    export OAUTH_AUTHORIZATION_URL="${AUTHENTIK_URL}/application/o/authorize/"
+    export OAUTH_TOKEN_URL="${AUTHENTIK_URL}/application/o/token/"
+    export OAUTH_CLIENT_ID="$AUTHENTIK_CLIENT_ID"
+    export OAUTH_CLIENT_SECRET="$AUTHENTIK_CLIENT_SECRET"
+    export OAUTH_AUTO_PROVISION="$AUTHENTIK_AUTO_PROVISION"
+    bashio::log.info "Authentik SSO enabled with URL: $AUTHENTIK_URL"
 fi
 
 # Ingress configuration
 if bashio::var.has_value "$(bashio::addon.ingress_entry)"; then
     export INGRESS_PATH="$(bashio::addon.ingress_entry)"
-    bashio::log.info "Ingress enabled with path: ${INGRESS_PATH}"
-    export PUBLIC_URL="${INGRESS_PATH}"
+    bashio::log.info "Ingress enabled with path: $INGRESS_PATH"
+    export PUBLIC_URL="$INGRESS_PATH"
+    # Update ingress port to match configured port
+    export INGRESS_PORT="$PORT"
 else
     export INGRESS_PATH=""
     export PUBLIC_URL=""
@@ -56,96 +46,87 @@ fi
 
 # Set data directory
 export DATA_DIR=/data
+mkdir -p $DATA_DIR
 
 # Set database path for SQLite
-if [[ "${database}" == "sqlite" ]]; then
-    export DATABASE_URL="file:${DATA_DIR}/pangolin.db"
+if [ "$DATABASE" = "sqlite" ]; then
+    export DATABASE_URL="file:$DATA_DIR/pangolin.db"
 else
     bashio::log.info "PostgreSQL database configuration not yet implemented"
 fi
 
 bashio::log.info "Starting Pangolin Reverse Proxy..."
-bashio::log.info "Port: ${port}"
-bashio::log.info "Database: ${database}"
-bashio::log.info "Log Level: ${log_level}"
-if bashio::var.has_value "${INGRESS_PATH}"; then
-    bashio::log.info "Ingress Path: ${INGRESS_PATH}"
+bashio::log.info "Port: $PORT"
+bashio::log.info "Database: $DATABASE"
+bashio::log.info "Log Level: $LOG_LEVEL"
+if [ -n "$INGRESS_PATH" ]; then
+    bashio::log.info "Ingress Path: $INGRESS_PATH"
 fi
 
-# Determine app directory and find server files
-bashio::log.info "=== Debugging file locations ==="
-bashio::log.info "Current directory: $(pwd)"
-bashio::log.info "Contents of /app:"
-ls -la /app || bashio::log.warning "Could not list /app"
-bashio::log.info "Contents of /app/final:"
-ls -la /app/final || bashio::log.warning "Could not list /app/final"
-bashio::log.info "Contents of /app/final/dist:"
-ls -la /app/final/dist || bashio::log.warning "Could not list /app/final/dist"
-bashio::log.info "Contents of /app/dist:"
-ls -la /app/dist || bashio::log.warning "Could not list /app/dist"
+# Enhanced debugging - check current working directory and available files
+bashio::log.info "Current working directory: $(pwd)"
+bashio::log.info "Contents of current directory:"
+ls -la
 
-# Try multiple possible locations for the app directory
-APP_DIR=""
-if [ -d "/app/final" ] && [ "$(ls -A /app/final)" ]; then
-    APP_DIR="/app/final"
-    bashio::log.info "Using app directory: /app/final"
-elif [ -d "/app" ] && [ -f "/app/server.js" ]; then
-    APP_DIR="/app"
-    bashio::log.info "Using app directory: /app"
-else
-    # Default to /app even if empty
-    APP_DIR="/app"
-    bashio::log.info "Defaulting to app directory: /app"
-fi
-
-cd "${APP_DIR}" || bashio::exit.nok "Could not change to app directory ${APP_DIR}"
-
-# Run database migrations if the file exists
-if [ -f "dist/migrations.mjs" ]; then
-    bashio::log.info "Running database migrations from dist/migrations.mjs..."
-    node dist/migrations.mjs || bashio::log.warning "Database migrations failed, continuing..."
-elif [ -f "/app/dist/migrations.mjs" ]; then
-    bashio::log.info "Running database migrations from /app/dist/migrations.mjs..."
-    node /app/dist/migrations.mjs || bashio::log.warning "Database migrations failed, continuing..."
-else
-    bashio::log.warning "No migration file found, skipping migrations"
-fi
-
-# Find and start the server - try multiple possible server files
-SERVER_FILE=""
+# Check multiple possible locations for server files
 POSSIBLE_SERVERS=(
     "dist/server.mjs"
-    "/app/dist/server.mjs" 
+    "/app/dist/server.mjs"
     "/app/final/dist/server.mjs"
     "server.js"
     "/app/server.js"
-    "dist/server.js"
-    "/app/dist/server.js"
-    "server/index.js"
-    "/app/server/index.js"
+    "/app/final/server.js"
+    ".next/standalone/server.js"
+    "/app/final/.next/standalone/server.js"
+    "standalone/server.js"
 )
 
+SERVER_FILE=""
 for server_path in "${POSSIBLE_SERVERS[@]}"; do
-    if [ -f "${server_path}" ]; then
-        SERVER_FILE="${server_path}"
-        bashio::log.info "Found server file: ${SERVER_FILE}"
+    bashio::log.info "Checking for server file at: $server_path"
+    if [ -f "$server_path" ]; then
+        SERVER_FILE="$server_path"
+        bashio::log.info "Found server file: $SERVER_FILE"
+        break
+    else
+        bashio::log.info "Not found: $server_path"
+    fi
+done
+
+if [ -z "$SERVER_FILE" ]; then
+    bashio::log.error "Could not find any server file to start!"
+    bashio::log.info "Available files in /app:"
+    find /app -name "*.js" -o -name "*.mjs" 2>/dev/null || echo "No JS files found in /app"
+    bashio::log.info "Available files in current directory:"
+    find . -name "*.js" -o -name "*.mjs" 2>/dev/null || echo "No JS files found in current directory"
+    exit 1
+fi
+
+# Check for and run database migrations if migration file exists
+MIGRATION_FILES=(
+    "dist/migrations.mjs"
+    "/app/dist/migrations.mjs"
+    "/app/final/dist/migrations.mjs"
+    "migrations.js"
+    "/app/migrations.js"
+)
+
+MIGRATION_FILE=""
+for migration_path in "${MIGRATION_FILES[@]}"; do
+    if [ -f "$migration_path" ]; then
+        MIGRATION_FILE="$migration_path"
+        bashio::log.info "Found migration file: $MIGRATION_FILE"
         break
     fi
 done
 
-if [ -z "${SERVER_FILE}" ]; then
-    bashio::log.error "Could not find any server file!"
-    bashio::log.info "Trying to start from original Pangolin directory..."
-    cd /app || bashio::exit.nok "Could not change to /app"
-    
-    # Try running Pangolin with its native start command
-    if [ -f "package.json" ]; then
-        bashio::log.info "Found package.json, trying npm start..."
-        exec npm start
-    else
-        bashio::exit.nok "No server file found and no package.json available"
-    fi
+if [ -n "$MIGRATION_FILE" ]; then
+    bashio::log.info "Running database migrations..."
+    node "$MIGRATION_FILE" || bashio::log.warning "Migration failed, continuing anyway"
 else
-    bashio::log.info "Starting Pangolin server from: ${SERVER_FILE}"
-    exec node --enable-source-maps "${SERVER_FILE}"
+    bashio::log.info "No migration file found, skipping migrations"
 fi
+
+# Start the server
+bashio::log.info "Starting Pangolin server with: $SERVER_FILE"
+exec node --enable-source-maps "$SERVER_FILE"
