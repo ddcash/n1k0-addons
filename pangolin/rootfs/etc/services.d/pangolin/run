@@ -37,7 +37,6 @@ if bashio::var.has_value "$(bashio::addon.ingress_entry)"; then
     export INGRESS_PATH="$(bashio::addon.ingress_entry)"
     bashio::log.info "Ingress enabled with path: $INGRESS_PATH"
     export PUBLIC_URL="$INGRESS_PATH"
-    # Update ingress port to match configured port
     export INGRESS_PORT="$PORT"
 else
     export INGRESS_PATH=""
@@ -63,70 +62,105 @@ if [ -n "$INGRESS_PATH" ]; then
     bashio::log.info "Ingress Path: $INGRESS_PATH"
 fi
 
-# Enhanced debugging - check current working directory and available files
+# Enhanced debugging - comprehensive file system exploration
+bashio::log.info "=== COMPREHENSIVE FILE SYSTEM DEBUG ==="
 bashio::log.info "Current working directory: $(pwd)"
 bashio::log.info "Contents of current directory:"
-ls -la
+ls -la || true
 
-# Check multiple possible locations for server files
-POSSIBLE_SERVERS=(
-    "dist/server.mjs"
-    "/app/dist/server.mjs"
-    "/app/final/dist/server.mjs"
-    "server.js"
-    "/app/server.js"
-    "/app/final/server.js"
-    ".next/standalone/server.js"
-    "/app/final/.next/standalone/server.js"
-    "standalone/server.js"
-)
-
-SERVER_FILE=""
-for server_path in "${POSSIBLE_SERVERS[@]}"; do
-    bashio::log.info "Checking for server file at: $server_path"
-    if [ -f "$server_path" ]; then
-        SERVER_FILE="$server_path"
-        bashio::log.info "Found server file: $SERVER_FILE"
-        break
-    else
-        bashio::log.info "Not found: $server_path"
-    fi
-done
-
-if [ -z "$SERVER_FILE" ]; then
-    bashio::log.error "Could not find any server file to start!"
-    bashio::log.info "Available files in /app:"
-    find /app -name "*.js" -o -name "*.mjs" 2>/dev/null || echo "No JS files found in /app"
-    bashio::log.info "Available files in current directory:"
-    find . -name "*.js" -o -name "*.mjs" 2>/dev/null || echo "No JS files found in current directory"
-    exit 1
-fi
-
-# Check for and run database migrations if migration file exists
-MIGRATION_FILES=(
-    "dist/migrations.mjs"
-    "/app/dist/migrations.mjs"
-    "/app/final/dist/migrations.mjs"
-    "migrations.js"
-    "/app/migrations.js"
-)
-
-MIGRATION_FILE=""
-for migration_path in "${MIGRATION_FILES[@]}"; do
-    if [ -f "$migration_path" ]; then
-        MIGRATION_FILE="$migration_path"
-        bashio::log.info "Found migration file: $MIGRATION_FILE"
-        break
-    fi
-done
-
-if [ -n "$MIGRATION_FILE" ]; then
-    bashio::log.info "Running database migrations..."
-    node "$MIGRATION_FILE" || bashio::log.warning "Migration failed, continuing anyway"
+bashio::log.info "=== Checking /app directory ==="
+if [ -d "/app" ]; then
+    bashio::log.info "Contents of /app:"
+    ls -la /app || true
+    bashio::log.info "JavaScript/Node files in /app:"
+    ls -la /app/*.js /app/*.mjs /app/*.json 2>/dev/null || bashio::log.info "No direct JS files in /app"
 else
-    bashio::log.info "No migration file found, skipping migrations"
+    bashio::log.info "/app directory does not exist"
 fi
 
-# Start the server
-bashio::log.info "Starting Pangolin server with: $SERVER_FILE"
-exec node --enable-source-maps "$SERVER_FILE"
+bashio::log.info "=== Checking /app/final directory ==="
+if [ -d "/app/final" ]; then
+    bashio::log.info "Contents of /app/final:"
+    ls -la /app/final || true
+    bashio::log.info "JavaScript/Node files in /app/final:"
+    ls -la /app/final/*.js /app/final/*.mjs /app/final/*.json 2>/dev/null || bashio::log.info "No direct JS files in /app/final"
+else
+    bashio::log.info "/app/final directory does not exist"
+fi
+
+bashio::log.info "=== Checking subdirectories ==="
+for dir in "/app/dist" "/app/final/dist" "/app/.next" "/app/final/.next" "/app/server" "/app/final/server"; do
+    if [ -d "$dir" ]; then
+        bashio::log.info "Contents of $dir:"
+        ls -la "$dir" || true
+    else
+        bashio::log.info "$dir does not exist"
+    fi
+done
+
+bashio::log.info "=== Searching for ALL JavaScript files recursively ==="
+# Use a safer approach to find JS files
+bashio::log.info "Searching for .js files:"
+ls -la /app/*.js 2>/dev/null || true
+ls -la /app/*/*.js 2>/dev/null || true
+ls -la /app/*/*/*.js 2>/dev/null || true
+
+bashio::log.info "Searching for .mjs files:"
+ls -la /app/*.mjs 2>/dev/null || true
+ls -la /app/*/*.mjs 2>/dev/null || true
+ls -la /app/*/*/*.mjs 2>/dev/null || true
+
+bashio::log.info "=== Checking package.json and start scripts ==="
+for pkgjson in "/app/package.json" "/app/final/package.json"; do
+    if [ -f "$pkgjson" ]; then
+        bashio::log.info "Found package.json at $pkgjson"
+        bashio::log.info "Package scripts section:"
+        grep -A 10 '"scripts"' "$pkgjson" || true
+    else
+        bashio::log.info "No package.json at $pkgjson"
+    fi
+done
+
+# Try to start from the original Pangolin source first
+bashio::log.info "=== Attempting to start from original Pangolin source ==="
+cd /app || bashio::log.error "Could not change to /app"
+
+if [ -f "package.json" ]; then
+    bashio::log.info "Found package.json in /app, checking start script"
+    if grep -q '"start"' package.json; then
+        bashio::log.info "Found start script, attempting npm start"
+        exec npm start
+    elif [ -f "dist/server.mjs" ]; then
+        bashio::log.info "No start script, but found dist/server.mjs"
+        exec node --enable-source-maps dist/server.mjs
+    elif [ -f ".next/standalone/server.js" ]; then
+        bashio::log.info "Found Next.js standalone server"
+        exec node .next/standalone/server.js
+    else
+        bashio::log.error "Found package.json but no recognizable start method"
+    fi
+else
+    bashio::log.info "No package.json in /app, trying /app/final"
+    cd /app/final || bashio::log.error "Could not change to /app/final"
+    
+    if [ -f "package.json" ]; then
+        bashio::log.info "Found package.json in /app/final"
+        if grep -q '"start"' package.json; then
+            bashio::log.info "Found start script, attempting npm start"
+            exec npm start
+        elif [ -f "server.js" ]; then
+            bashio::log.info "Found server.js in /app/final"
+            exec node server.js
+        elif [ -f ".next/standalone/server.js" ]; then
+            bashio::log.info "Found Next.js standalone server in /app/final"
+            exec node .next/standalone/server.js
+        else
+            bashio::log.error "Found package.json but no recognizable server file"
+        fi
+    else
+        bashio::log.error "Could not find package.json or any server files"
+        bashio::log.info "Final attempt: listing everything in /app recursively"
+        ls -laR /app 2>/dev/null || bashio::log.error "Cannot list /app contents"
+        exit 1
+    fi
+fi
