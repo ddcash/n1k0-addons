@@ -47,12 +47,12 @@ RUN find . -name "*.sql" -path "*/init/*" -exec cp {} dist/migrations/ \; 2>/dev
 COPY run.sh /run.sh
 RUN chmod +x /run.sh
 
-# Expose port
-EXPOSE 3000
+# Expose port 3003
+EXPOSE 3003
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3000/ || exit 1
+    CMD curl -f http://localhost:3003/ || exit 1
 
 # Start the application
 CMD ["/run.sh"]
