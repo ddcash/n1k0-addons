@@ -27,8 +27,11 @@ RUN git clone https://github.com/fosrl/pangolin.git . && \
 # Install dependencies first
 RUN npm ci
 
-# Install missing tailwindcss/postcss dependency that's needed for build
-RUN npm install @tailwindcss/postcss --save-dev
+# Install complete Tailwind CSS dependencies that might be missing
+RUN npm install tailwindcss @tailwindcss/postcss postcss autoprefixer --save-dev
+
+# Re-run npm ci to ensure all dependencies are properly linked
+RUN npm ci
 
 # Debug: Check what we have after npm install
 RUN echo "=== After npm install ===" && \
@@ -36,7 +39,10 @@ RUN echo "=== After npm install ===" && \
     echo "=== Node version ===" && \
     node --version && \
     echo "=== NPM version ===" && \
-    npm --version
+    npm --version && \
+    echo "=== Checking tailwindcss installation ===" && \
+    npm list tailwindcss || echo "tailwindcss not found" && \
+    npm list @tailwindcss/postcss || echo "@tailwindcss/postcss not found"
 
 # Generate database schema and build files
 RUN echo "export * from \"./sqlite\";" > server/db/index.ts && \
@@ -54,7 +60,9 @@ RUN echo "=== Before build - checking files ===" && \
     echo "=== Checking esbuild ===" && \
     ls -la esbuild.mjs && \
     echo "=== Checking package.json scripts ===" && \
-    grep -A 5 -B 5 "build:sqlite" package.json
+    grep -A 5 -B 5 "build:sqlite" package.json && \
+    echo "=== Checking postcss config ===" && \
+    ls -la postcss.config.* || echo "No postcss config found"
 
 # Build the application with better error handling
 RUN echo "=== Building SQLite version ===" && \
@@ -75,7 +83,7 @@ RUN echo "=== Building CLI ===" && \
 # Clean up dev dependencies but keep the built files
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Cache buster for Docker layer caching - 2025-09-19-v7
+# Cache buster for Docker layer caching - 2025-09-19-v8
 # Create final directory structure first
 RUN mkdir -p /app/final/dist /app/final/.next/static /app/final/public
 
