@@ -21,14 +21,20 @@ RUN npm install
 RUN echo "export * from \"./sqlite\";" > server/db/index.ts && \
     echo "export const build = \"oss\" as any;" > server/build.ts
 
-# Generate database schema for SQLite
-RUN npx drizzle-kit generate --dialect sqlite --schema ./server/db/sqlite/schema.ts --out init || mkdir -p init
+# Generate database schema for SQLite with proper output directory
+RUN npx drizzle-kit generate --dialect sqlite --schema ./server/db/sqlite/schema.ts --out dist/migrations
 
 # Build using the correct Pangolin build commands (SQLite version)
 RUN npm run build:sqlite
 
 # Copy the required names.json file to dist directory
 RUN cp server/db/names.json dist/names.json || echo '[]' > dist/names.json
+
+# Ensure migration files are in the correct location and create journal if missing
+RUN mkdir -p dist/migrations/meta && \
+    if [ ! -f dist/migrations/meta/_journal.json ]; then \
+        echo '{"version":"5","dialect":"sqlite","entries":[]}' > dist/migrations/meta/_journal.json; \
+    fi
 
 # Copy run script
 COPY run.sh /run.sh
