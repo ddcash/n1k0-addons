@@ -1,0 +1,49 @@
+{
+  "name": "Pangolin Reverse Proxy",
+  "version": "1.0.0",
+  "slug": "pangolin",
+  "description": "Tunneled reverse proxy server with identity and access management",
+  "url": "https://github.com/ddcash/n1k0-addons/tree/master/pangolin",
+  "webui": "http://[HOST]:[PORT:3000]",
+  "startup": "application",
+  "init": false,
+  "arch": ["aarch64", "amd64", "armhf", "armv7", "i386"],
+  "ports": {
+    "3000": 3000
+  },
+  "ports_description": {
+    "3000": "Pangolin web interface"
+  },
+  "boot": "auto",
+  "hassio_api": true,
+  "hassio_role": "default",
+  "ingress": true,
+  "ingress_port": 3000,
+  "panel_icon": "mdi:network",
+  "panel_title": "Pangolin",
+  "map": ["share:rw", "ssl:rw"],
+  "options": {
+    "port": 3000,
+    "database": "sqlite",
+    "log_level": "info",
+    "admin_email": "",
+    "admin_password": "",
+    "authentik_enabled": false,
+    "authentik_url": "",
+    "authentik_client_id": "",
+    "authentik_client_secret": "",
+    "authentik_auto_provision": true
+  },
+  "schema": {
+    "port": "port",
+    "database": "list(sqlite|pg)?",
+    "log_level": "list(trace|debug|info|warn|error|fatal)?",
+    "admin_email": "str?",
+    "admin_password": "str?",
+    "authentik_enabled": "bool?",
+    "authentik_url": "url?",
+    "authentik_client_id": "str?",
+    "authentik_client_secret": "password?",
+    "authentik_auto_provision": "bool?"
+  }
+}
