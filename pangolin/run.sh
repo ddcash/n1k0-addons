@@ -5,7 +5,7 @@ PORT=$(bashio::config 'port')
 LOG_LEVEL=$(bashio::config 'log_level')
 
 # Set environment variables for Pangolin
-export PORT=${PORT:-3000}
+export PORT=${PORT:-3003}
 export LOG_LEVEL=${LOG_LEVEL:-info}
 export NODE_ENV=production
 export ENVIRONMENT=prod
