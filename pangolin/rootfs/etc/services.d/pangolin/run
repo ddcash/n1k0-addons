@@ -72,17 +72,36 @@ if bashio::var.has_value "${INGRESS_PATH}"; then
     bashio::log.info "Ingress Path: ${INGRESS_PATH}"
 fi
 
-# Change to app directory
-cd /app/final || bashio::exit.nok "Could not change to app directory"
+# Determine app directory - try multiple locations
+if [ -d "/app/final" ]; then
+    APP_DIR="/app/final"
+elif [ -d "/app" ]; then
+    APP_DIR="/app"
+else
+    bashio::exit.nok "Could not find app directory"
+fi
+
+bashio::log.info "Using app directory: ${APP_DIR}"
+cd "${APP_DIR}" || bashio::exit.nok "Could not change to app directory"
 
 # Run database migrations if the file exists
 if [ -f "dist/migrations.mjs" ]; then
     bashio::log.info "Running database migrations..."
     node dist/migrations.mjs || bashio::log.warning "Database migrations failed, continuing..."
+elif [ -f "/app/dist/migrations.mjs" ]; then
+    bashio::log.info "Running database migrations from /app/dist/..."
+    node /app/dist/migrations.mjs || bashio::log.warning "Database migrations failed, continuing..."
 else
     bashio::log.warning "No migration file found, skipping migrations"
 fi
 
-# Start the server
-bashio::log.info "Starting Pangolin server..."
-exec node --enable-source-maps dist/server.mjs
+# Start the server - try multiple locations
+if [ -f "dist/server.mjs" ]; then
+    bashio::log.info "Starting Pangolin server from dist/server.mjs..."
+    exec node --enable-source-maps dist/server.mjs
+elif [ -f "/app/dist/server.mjs" ]; then
+    bashio::log.info "Starting Pangolin server from /app/dist/server.mjs..."
+    exec node --enable-source-maps /app/dist/server.mjs
+else
+    bashio::exit.nok "Could not find server.mjs file"
+fi
