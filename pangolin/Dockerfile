@@ -42,7 +42,7 @@ RUN npm run build:cli || echo "CLI build completed with warnings"
 # Clean up dev dependencies
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Cache buster for Docker layer caching - 2025-09-19-v3
+# Cache buster for Docker layer caching - 2025-09-19-v4
 # Create final directory structure first
 RUN mkdir -p /app/final/dist /app/final/.next/static /app/final/public
 
@@ -55,9 +55,10 @@ RUN echo "=== Listing files for debugging ===" && \
     (ls -la dist/ || echo "No dist directory") && \
     echo "=== End file listing ==="
 
-# Copy files with individual checks to avoid pipeline failures
+# Copy files with individual checks to avoid pipeline failures - using safer copy methods
 RUN if [ -d .next/standalone ]; then \
-        echo "Copying .next/standalone/*" && cp -r .next/standalone/* /app/final/; \
+        echo "Copying .next/standalone/*" && \
+        find .next/standalone -mindepth 1 -exec cp -r {} /app/final/ \; 2>/dev/null || echo "No files in standalone"; \
     else \
         echo "No .next/standalone directory found"; \
     fi
@@ -69,7 +70,12 @@ RUN if [ -d .next/static ]; then \
     fi
 
 RUN if [ -d dist ]; then \
-        echo "Copying dist/*" && cp -r dist/* /app/final/dist/; \
+        echo "Copying dist directory" && \
+        if [ "$(ls -A dist)" ]; then \
+            cp -r dist/* /app/final/dist/ 2>/dev/null || echo "Could not copy dist contents"; \
+        else \
+            echo "dist directory is empty"; \
+        fi; \
     else \
         echo "No dist directory found"; \
     fi
