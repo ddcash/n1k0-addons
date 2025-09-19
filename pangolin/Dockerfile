@@ -27,6 +27,9 @@ RUN git clone https://github.com/fosrl/pangolin.git . && \
 # Install dependencies first
 RUN npm ci
 
+# Install missing tailwindcss/postcss dependency that's needed for build
+RUN npm install @tailwindcss/postcss --save-dev
+
 # Debug: Check what we have after npm install
 RUN echo "=== After npm install ===" && \
     ls -la && \
@@ -72,7 +75,7 @@ RUN echo "=== Building CLI ===" && \
 # Clean up dev dependencies but keep the built files
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Cache buster for Docker layer caching - 2025-09-19-v6
+# Cache buster for Docker layer caching - 2025-09-19-v7
 # Create final directory structure first
 RUN mkdir -p /app/final/dist /app/final/.next/static /app/final/public
 
