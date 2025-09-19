@@ -1,6 +1,6 @@
 {
   "name": "Pangolin Reverse Proxy",
-  "version": "2.0.6",
+  "version": "2.0.7",
   "slug": "pangolin",
   "description": "Tunneled reverse proxy server with identity and access management",
   "url": "https://github.com/ddcash/n1k0-addons/tree/master/pangolin",
@@ -10,18 +10,18 @@
   "hassio_api": true,
   "hassio_role": "default",
   "ingress": true,
-  "ingress_port": 3000,
+  "ingress_port": 3003,
   "panel_icon": "mdi:network",
   "panel_title": "Pangolin",
   "map": ["share:rw", "ssl:rw"],
   "ports": {
-    "3000/tcp": 3000
+    "3003/tcp": 3003
   },
   "ports_description": {
-    "3000/tcp": "Pangolin web interface (when not using ingress)"
+    "3003/tcp": "Pangolin web interface (when not using ingress)"
   },
   "options": {
-    "port": 3000,
+    "port": 3003,
     "log_level": "info"
   },
   "schema": {
