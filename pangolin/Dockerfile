@@ -27,6 +27,9 @@ RUN npx drizzle-kit generate --dialect sqlite --schema ./server/db/sqlite/schema
 # Build using the correct Pangolin build commands (SQLite version)
 RUN npm run build:sqlite
 
+# Copy the required names.json file to dist directory
+RUN cp server/db/names.json dist/names.json || echo '[]' > dist/names.json
+
 # Copy run script
 COPY run.sh /run.sh
 RUN chmod +x /run.sh
