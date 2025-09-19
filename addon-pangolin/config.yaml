@@ -10,6 +10,8 @@ arch:
   - amd64
   - i386
 init: false
+hassio_api: true
+hassio_role: default
 ingress: true
 ingress_port: 3000
 ingress_stream: false
@@ -47,4 +49,3 @@ schema:
   authentik_client_id: "str?"
   authentik_client_secret: "password?"
   authentik_auto_provision: "bool?"
-image: "ghcr.io/ddcash/addon-pangolin-{arch}"
