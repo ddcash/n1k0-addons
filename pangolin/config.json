@@ -1,6 +1,6 @@
 {
   "name": "Pangolin Reverse Proxy",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "slug": "pangolin",
   "description": "Tunneled reverse proxy server with identity and access management",
   "url": "https://github.com/ddcash/n1k0-addons/tree/master/pangolin",
@@ -14,6 +14,12 @@
   "panel_icon": "mdi:network",
   "panel_title": "Pangolin",
   "map": ["share:rw", "ssl:rw"],
+  "ports": {
+    "3000/tcp": 3000
+  },
+  "ports_description": {
+    "3000/tcp": "Pangolin web interface (when not using ingress)"
+  },
   "options": {
     "port": 3000,
     "log_level": "info"
