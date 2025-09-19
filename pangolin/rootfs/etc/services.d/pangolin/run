@@ -75,9 +75,13 @@ fi
 # Change to app directory
 cd /app/final || bashio::exit.nok "Could not change to app directory"
 
-# Run database migrations
-bashio::log.info "Running database migrations..."
-node dist/migrations.mjs || bashio::exit.nok "Failed to run database migrations"
+# Run database migrations if the file exists
+if [ -f "dist/migrations.mjs" ]; then
+    bashio::log.info "Running database migrations..."
+    node dist/migrations.mjs || bashio::log.warning "Database migrations failed, continuing..."
+else
+    bashio::log.warning "No migration file found, skipping migrations"
+fi
 
 # Start the server
 bashio::log.info "Starting Pangolin server..."
