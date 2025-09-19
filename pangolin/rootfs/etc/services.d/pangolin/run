@@ -72,36 +72,80 @@ if bashio::var.has_value "${INGRESS_PATH}"; then
     bashio::log.info "Ingress Path: ${INGRESS_PATH}"
 fi
 
-# Determine app directory - try multiple locations
-if [ -d "/app/final" ]; then
+# Determine app directory and find server files
+bashio::log.info "=== Debugging file locations ==="
+bashio::log.info "Current directory: $(pwd)"
+bashio::log.info "Contents of /app:"
+ls -la /app || bashio::log.warning "Could not list /app"
+bashio::log.info "Contents of /app/final:"
+ls -la /app/final || bashio::log.warning "Could not list /app/final"
+bashio::log.info "Contents of /app/final/dist:"
+ls -la /app/final/dist || bashio::log.warning "Could not list /app/final/dist"
+bashio::log.info "Contents of /app/dist:"
+ls -la /app/dist || bashio::log.warning "Could not list /app/dist"
+
+# Try multiple possible locations for the app directory
+APP_DIR=""
+if [ -d "/app/final" ] && [ "$(ls -A /app/final)" ]; then
     APP_DIR="/app/final"
-elif [ -d "/app" ]; then
+    bashio::log.info "Using app directory: /app/final"
+elif [ -d "/app" ] && [ -f "/app/server.js" ]; then
     APP_DIR="/app"
+    bashio::log.info "Using app directory: /app"
 else
-    bashio::exit.nok "Could not find app directory"
+    # Default to /app even if empty
+    APP_DIR="/app"
+    bashio::log.info "Defaulting to app directory: /app"
 fi
 
-bashio::log.info "Using app directory: ${APP_DIR}"
-cd "${APP_DIR}" || bashio::exit.nok "Could not change to app directory"
+cd "${APP_DIR}" || bashio::exit.nok "Could not change to app directory ${APP_DIR}"
 
 # Run database migrations if the file exists
 if [ -f "dist/migrations.mjs" ]; then
-    bashio::log.info "Running database migrations..."
+    bashio::log.info "Running database migrations from dist/migrations.mjs..."
     node dist/migrations.mjs || bashio::log.warning "Database migrations failed, continuing..."
 elif [ -f "/app/dist/migrations.mjs" ]; then
-    bashio::log.info "Running database migrations from /app/dist/..."
+    bashio::log.info "Running database migrations from /app/dist/migrations.mjs..."
     node /app/dist/migrations.mjs || bashio::log.warning "Database migrations failed, continuing..."
 else
     bashio::log.warning "No migration file found, skipping migrations"
 fi
 
-# Start the server - try multiple locations
-if [ -f "dist/server.mjs" ]; then
-    bashio::log.info "Starting Pangolin server from dist/server.mjs..."
-    exec node --enable-source-maps dist/server.mjs
-elif [ -f "/app/dist/server.mjs" ]; then
-    bashio::log.info "Starting Pangolin server from /app/dist/server.mjs..."
-    exec node --enable-source-maps /app/dist/server.mjs
+# Find and start the server - try multiple possible server files
+SERVER_FILE=""
+POSSIBLE_SERVERS=(
+    "dist/server.mjs"
+    "/app/dist/server.mjs" 
+    "/app/final/dist/server.mjs"
+    "server.js"
+    "/app/server.js"
+    "dist/server.js"
+    "/app/dist/server.js"
+    "server/index.js"
+    "/app/server/index.js"
+)
+
+for server_path in "${POSSIBLE_SERVERS[@]}"; do
+    if [ -f "${server_path}" ]; then
+        SERVER_FILE="${server_path}"
+        bashio::log.info "Found server file: ${SERVER_FILE}"
+        break
+    fi
+done
+
+if [ -z "${SERVER_FILE}" ]; then
+    bashio::log.error "Could not find any server file!"
+    bashio::log.info "Trying to start from original Pangolin directory..."
+    cd /app || bashio::exit.nok "Could not change to /app"
+    
+    # Try running Pangolin with its native start command
+    if [ -f "package.json" ]; then
+        bashio::log.info "Found package.json, trying npm start..."
+        exec npm start
+    else
+        bashio::exit.nok "No server file found and no package.json available"
+    fi
 else
-    bashio::exit.nok "Could not find server.mjs file"
+    bashio::log.info "Starting Pangolin server from: ${SERVER_FILE}"
+    exec node --enable-source-maps "${SERVER_FILE}"
 fi
