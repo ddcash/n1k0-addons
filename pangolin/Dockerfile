@@ -11,10 +11,14 @@ RUN apk add --no-cache \
 # Set working directory
 WORKDIR /app
 
-# Clone Pangolin and install dependencies
-RUN git clone https://github.com/fosrl/pangolin.git . && \
-    npm install && \
-    npm run build
+# Clone Pangolin repository
+RUN git clone https://github.com/fosrl/pangolin.git .
+
+# Install dependencies
+RUN npm install
+
+# Build using the correct Pangolin build commands (SQLite version)
+RUN npm run build:sqlite
 
 # Copy run script
 COPY run.sh /run.sh
