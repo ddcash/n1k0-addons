@@ -42,7 +42,7 @@ RUN npm run build:cli || echo "CLI build completed with warnings"
 # Clean up dev dependencies
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Cache buster for Docker layer caching - 2025-09-19-v4
+# Cache buster for Docker layer caching - 2025-09-19-v5
 # Create final directory structure first
 RUN mkdir -p /app/final/dist /app/final/.next/static /app/final/public
 
@@ -104,12 +104,17 @@ RUN if [ -f cli/wrapper.sh ]; then cp cli/wrapper.sh /usr/local/bin/pangctl && c
 # Set final working directory
 WORKDIR /app/final
 
-# Copy run script
+# Copy rootfs with service scripts
 COPY rootfs/ /
-RUN chmod +x /etc/cont-init.d/* /etc/services.d/*/run
+
+# Fix permissions for all service scripts
+RUN find /etc/services.d -name "run" -exec chmod +x {} \; && \
+    find /etc/services.d -name "finish" -exec chmod +x {} \; && \
+    find /etc/cont-init.d -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
 
 # Expose port
 EXPOSE 3000
 
-# Start the application directly if Next.js standalone doesn't exist
-CMD ["node", "--enable-source-maps", "/app/dist/server.mjs"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3000/ || exit 1
