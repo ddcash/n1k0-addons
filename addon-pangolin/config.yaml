@@ -1,0 +1,50 @@
+name: "Pangolin Reverse Proxy"
+description: "Tunneled reverse proxy server with identity and access management"
+version: "1.0.0"
+slug: "pangolin"
+url: "https://github.com/ddcash/n1k0-addons/tree/master/addon-pangolin"
+arch:
+  - armhf
+  - armv7
+  - aarch64
+  - amd64
+  - i386
+init: false
+ingress: true
+ingress_port: 3000
+ingress_stream: false
+panel_icon: mdi:network
+panel_title: "Pangolin"
+panel_admin: false
+ports:
+  3000/tcp: null
+ports_description:
+  3000/tcp: "Pangolin web interface (when not using ingress)"
+map:
+  - "share:rw"
+  - "ssl:rw"
+options:
+  port: 3000
+  database: "sqlite"
+  log_level: "info"
+  admin_email: ""
+  admin_password: ""
+  # Authentik SSO Configuration
+  authentik_enabled: false
+  authentik_url: ""
+  authentik_client_id: ""
+  authentik_client_secret: ""
+  authentik_auto_provision: true
+schema:
+  port: "port"
+  database: "list(sqlite|pg)?"
+  log_level: "list(trace|debug|info|warn|error|fatal)?"
+  admin_email: "str?"
+  admin_password: "str?"
+  # Authentik SSO Schema
+  authentik_enabled: "bool?"
+  authentik_url: "url?"
+  authentik_client_id: "str?"
+  authentik_client_secret: "password?"
+  authentik_auto_provision: "bool?"
+image: "ghcr.io/ddcash/addon-pangolin-{arch}"
