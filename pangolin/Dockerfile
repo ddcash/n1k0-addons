@@ -42,14 +42,55 @@ RUN npm run build:cli || echo "CLI build completed with warnings"
 # Clean up dev dependencies
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Copy built files to final structure with proper checks
-RUN mkdir -p /app/final/dist && \
-    ([ -d .next/standalone ] && cp -r .next/standalone/* /app/final/ || echo "No standalone build found") && \
-    ([ -d .next/static ] && cp -r .next/static /app/final/.next/static || mkdir -p /app/final/.next/static) && \
-    ([ -d dist ] && cp -r dist/* /app/final/dist/ || echo "No dist directory found") && \
-    ([ -d init ] && cp -r init /app/final/dist/init || mkdir -p /app/final/dist/init) && \
-    ([ -f server/db/names.json ] && cp server/db/names.json /app/final/dist/names.json || echo "No names.json found") && \
-    ([ -d public ] && cp -r public /app/final/public || mkdir -p /app/final/public)
+# Cache buster for Docker layer caching - 2025-09-19-v3
+# Create final directory structure first
+RUN mkdir -p /app/final/dist /app/final/.next/static /app/final/public
+
+# Check what files exist for debugging
+RUN echo "=== Listing files for debugging ===" && \
+    ls -la . && \
+    echo "=== Checking .next directory ===" && \
+    (ls -la .next/ || echo "No .next directory") && \
+    echo "=== Checking dist directory ===" && \
+    (ls -la dist/ || echo "No dist directory") && \
+    echo "=== End file listing ==="
+
+# Copy files with individual checks to avoid pipeline failures
+RUN if [ -d .next/standalone ]; then \
+        echo "Copying .next/standalone/*" && cp -r .next/standalone/* /app/final/; \
+    else \
+        echo "No .next/standalone directory found"; \
+    fi
+
+RUN if [ -d .next/static ]; then \
+        echo "Copying .next/static" && cp -r .next/static /app/final/.next/static; \
+    else \
+        echo "No .next/static directory found"; \
+    fi
+
+RUN if [ -d dist ]; then \
+        echo "Copying dist/*" && cp -r dist/* /app/final/dist/; \
+    else \
+        echo "No dist directory found"; \
+    fi
+
+RUN if [ -d init ]; then \
+        echo "Copying init directory" && cp -r init /app/final/dist/init; \
+    else \
+        echo "No init directory found" && mkdir -p /app/final/dist/init; \
+    fi
+
+RUN if [ -f server/db/names.json ]; then \
+        echo "Copying names.json" && cp server/db/names.json /app/final/dist/names.json; \
+    else \
+        echo "No names.json found"; \
+    fi
+
+RUN if [ -d public ]; then \
+        echo "Copying public directory" && cp -r public /app/final/public; \
+    else \
+        echo "No public directory found"; \
+    fi
 
 # Copy CLI wrapper (skip if file doesn't exist)
 RUN if [ -f cli/wrapper.sh ]; then cp cli/wrapper.sh /usr/local/bin/pangctl && chmod +x /usr/local/bin/pangctl; fi
