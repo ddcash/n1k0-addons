@@ -1,6 +1,6 @@
 {
   "name": "Pangolin Reverse Proxy",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "slug": "pangolin",
   "description": "Tunneled reverse proxy server with identity and access management",
   "url": "https://github.com/ddcash/n1k0-addons/tree/master/pangolin",
