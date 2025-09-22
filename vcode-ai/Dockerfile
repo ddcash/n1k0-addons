@@ -57,6 +57,9 @@ RUN \
     \
     && curl https://bootstrap.pypa.io/get-pip.py | python3 \
     \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    \
     && npm install -g @anthropic-ai/claude-code@latest \
     && npm install -g @google/gemini-cli@latest \
     \
