@@ -51,6 +51,12 @@ elif bashio::fs.file_exists '/config/gemini_api_key'; then
     export GOOGLE_API_KEY="$(cat /config/gemini_api_key)"
 fi
 
+# Ensure Gemini CLI config directory is accessible
+if ! bashio::fs.file_exists "/root/.config/gemini-cli"; then
+    mkdir -p /root/.config
+    ln -sf ${ADDON_CONFIG_PATH}/gemini-cli /root/.config/gemini-cli
+fi
+
 # Run the code server
 cd "${config_path}" || bashio::exit.nok "Could not change working directory"
 exec code-server "${options[@]}" "${config_path}"

@@ -114,6 +114,18 @@ if ! bashio::fs.file_exists "/root/.config/gemini-cli"; then
     ln -sf ${ADDON_CONFIG_PATH}/gemini-cli /root/.config/gemini-cli
 fi
 
+# Initialize Gemini CLI configuration if it doesn't exist
+if ! bashio::fs.file_exists "${ADDON_CONFIG_PATH}/gemini-cli/config.json"; then
+    bashio::log.info "Initializing Gemini CLI configuration"
+    mkdir -p "${ADDON_CONFIG_PATH}/gemini-cli"
+    cat > "${ADDON_CONFIG_PATH}/gemini-cli/config.json" << 'EOF'
+{
+  "default_model": "gemini-1.5-pro",
+  "api_key_source": "environment"
+}
+EOF
+fi
+
 # Set up Gemini API key from addon config if it exists
 if bashio::fs.file_exists "${ADDON_CONFIG_PATH}/gemini_api_key"; then
     export GOOGLE_API_KEY="$(cat ${ADDON_CONFIG_PATH}/gemini_api_key)"
@@ -121,6 +133,18 @@ if bashio::fs.file_exists "${ADDON_CONFIG_PATH}/gemini_api_key"; then
 elif bashio::fs.file_exists '/config/gemini_api_key'; then
     export GOOGLE_API_KEY="$(cat /config/gemini_api_key)"
     bashio::log.info "Gemini CLI configured with API key from config"
+fi
+
+# Initialize Gemini CLI auth if API key is available and auth doesn't exist
+if [[ -n "${GOOGLE_API_KEY:-}" ]] && ! bashio::fs.file_exists "${ADDON_CONFIG_PATH}/gemini-cli/auth.json"; then
+    bashio::log.info "Initializing Gemini CLI authentication"
+    # Create a basic auth configuration that references the environment variable
+    cat > "${ADDON_CONFIG_PATH}/gemini-cli/auth.json" << EOF
+{
+  "api_key": "\${GOOGLE_API_KEY}",
+  "authenticated": true
+}
+EOF
 fi
 
 bashio::log.info "Gemini CLI setup completed"
