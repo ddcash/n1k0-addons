@@ -1,0 +1,48 @@
+#!/usr/bin/with-contenv bashio
+# ==============================================================================
+# Home Assistant Add-on: Example Add-on
+# Runs the example application
+# ==============================================================================
+
+bashio::log.info "Starting Example Add-on..."
+
+# Get configuration
+MESSAGE=$(bashio::config 'message')
+LOG_LEVEL=$(bashio::config 'log_level')
+
+bashio::log.info "Message: ${MESSAGE}"
+bashio::log.info "Log Level: ${LOG_LEVEL}"
+
+# Create a simple HTML page
+cat > /tmp/index.html << EOF
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Example Add-on</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 600px; margin: 0 auto; text-align: center; }
+        .message { background: #f0f0f0; padding: 20px; border-radius: 8px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Example Home Assistant Add-on</h1>
+        <div class="message">
+            <h2>Your Message:</h2>
+            <p>${MESSAGE}</p>
+        </div>
+        <p>This is a simple example add-on running in Home Assistant.</p>
+        <p>Log Level: ${LOG_LEVEL}</p>
+        <p>Current Time: $(date)</p>
+    </div>
+</body>
+</html>
+EOF
+
+# Change to the directory with our HTML file
+cd /tmp
+
+# Start the example application
+bashio::log.info "Example application started on port 8080"
+exec python3 /usr/local/bin/example-app.py

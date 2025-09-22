@@ -1,0 +1,41 @@
+---
+version: "1.0.0"
+slug: vcode-ai
+name: VSCode with Claude Code AI
+description: "Visual Studio Code with Claude Code CLI integration for AI-powered development"
+url: "https://github.com/ddcash/n1k0-addons/tree/main/vcode-ai"
+arch:
+  - aarch64
+  - amd64
+init: false
+ingress: true
+ingress_port: 1337
+panel_icon: mdi:microsoft-visual-studio-code
+panel_title: VSCode AI
+ports:
+  1337/tcp: null
+map:
+  - config:rw
+  - addons:rw
+  - backup:ro
+  - share:rw
+  - ssl:ro
+  - media:rw
+  - data:rw
+environment:
+  LOG_LEVEL: info
+options:
+  packages: []
+  init_commands: []
+  config_path: ""
+  log_level: info
+schema:
+  packages:
+    - str
+  init_commands:
+    - str
+  config_path: str?
+  log_level: list(trace|debug|info|notice|warning|error|fatal)?
+services:
+  - mysql:want
+  - mqtt:want
