@@ -1,214 +1,244 @@
 # Home Assistant Add-on: VSCode with Claude Code AI
 
-This add-on provides a browser-based Visual Studio Code experience with integrated Claude Code CLI for AI-powered development within your Home Assistant environment.
+This add-on runs [code-server](https://github.com/coder/code-server) with integrated
+[Claude Code CLI](https://github.com/anthropics/claude-code), giving you a powerful
+Visual Studio Code experience with AI-powered development assistance straight from
+your browser. It allows you to edit your Home Assistant configuration and develop
+with AI assistance directly from within the Home Assistant frontend.
+
+The add-on has the Home Assistant, MDI icons, YAML extensions, and Claude Dev extension
+pre-installed and pre-configured right out of the box. This means that auto-completion
+and AI assistance work instantly, without the need for configuring anything.
 
 ## Installation
 
-Follow these steps to install the VSCode with Claude Code AI add-on:
+The installation of this add-on is pretty straightforward and not different in
+comparison to installing any other Home Assistant add-on.
 
-1. Navigate to the Supervisor panel in your Home Assistant frontend
-2. Click on the "Add-on Store" tab
-3. Add this repository by clicking the menu (three dots) and selecting "Repositories"
-4. Enter: `https://github.com/ddcash/n1k0-addons`
-5. Find "VSCode with Claude Code AI" and click "Install"
-6. Optionally, configure the add-on (see Configuration section)
-7. Click "Start"
+1. Click the Home Assistant My button below to open the add-on on your Home
+   Assistant instance.
 
-## Configuration
+   [![Open this add-on in your Home Assistant instance.][addon-badge]][addon]
 
-### Basic Configuration
-
-The add-on can be used without any configuration, but you may want to customize certain aspects:
-
-```yaml
-packages:
-  - git
-  - nano
-init_commands:
-  - pip install homeassistant
-config_path: ""
-log_level: info
-```
-
-### Advanced Configuration
-
-#### Installing Additional Packages
-
-You can install additional Alpine Linux packages by adding them to the `packages` configuration:
-
-```yaml
-packages:
-  - git
-  - nano
-  - htop
-  - curl
-```
-
-#### Initialization Commands
-
-Run custom commands when the add-on starts:
-
-```yaml
-init_commands:
-  - pip install custom-package
-  - npm install -g some-tool
-  - echo "Add-on started" >> /config/startup.log
-```
-
-#### Custom Configuration Path
-
-By default, VSCode configuration is stored in `/data/vscode`. You can customize this:
-
-```yaml
-config_path: "/config/my-vscode-config"
-```
+1. Click the "Install" button to install the add-on.
+1. Start the "Studio Code Server" add-on.
+1. Check the logs of the "Studio Code Server" add-on to see if everything went
+   well.
+1. Click the "OPEN WEB UI" button to open Studio Code Server.
 
 ## Claude Code CLI Setup
 
-### Getting an API Key
+To use the Claude Code CLI features, you need to configure your Anthropic API key:
+
+### Method 1: Using Addon Config Directory (Recommended)
+
+1. Create a file named `claude_api_key` in the addon config directory:
+   - Navigate to `/addon_configs/local_vscode-claude/`
+   - Create the file `claude_api_key` containing only your API key
+
+### Method 2: Using Home Assistant Config Directory
+
+1. Create a file named `claude_api_key` in your Home Assistant config directory:
+   - Navigate to `/config/`
+   - Create the file `claude_api_key` containing only your API key
+
+### Getting Your API Key
 
 1. Visit [Anthropic Console](https://console.anthropic.com/)
 2. Create an account or sign in
 3. Navigate to API Keys section
 4. Create a new API key
-5. Copy the key for the next step
-
-### Configuring the API Key
-
-Create a file containing your Anthropic API key:
-
-1. Using the File Editor add-on or any text editor, create a file at `/config/claude_api_key`
-2. Paste your API key into this file (the file should contain only the API key)
-3. Restart the VSCode add-on
-
-The add-on will automatically detect this file and configure Claude Code CLI.
-
-### Alternative API Key Configuration
-
-You can also set the API key through the terminal within VSCode:
-
-```bash
-export ANTHROPIC_API_KEY="your-api-key-here"
-```
-
-Note: This method requires setting the key each time you start a new terminal session.
-
-## Usage
-
-### Accessing VSCode
-
-1. Start the add-on
-2. Click "OPEN WEB UI" button
-3. VSCode will open in your browser
+5. Copy the key and save it to one of the locations above
 
 ### Using Claude Code CLI
 
-Once configured with an API key, you can use Claude Code CLI:
+Once configured, you can use Claude Code CLI in several ways:
 
-```bash
-# Start an interactive session
-claude-code
+1. **Integrated Terminal**: Open the terminal in VSCode and run:
+   ```bash
+   claude-code "Help me write a Home Assistant automation"
+   ```
 
-# Get help
-claude-code --help
+2. **Claude Dev Extension**: Use the pre-installed Claude Dev extension for inline AI assistance
 
-# Run a specific command
-claude-code "Help me write a Python script to parse YAML"
+3. **Persistent Configuration**: All your Claude Code CLI settings, including MCP server configurations, are automatically saved to `/addon_configs/local_vscode-claude/claude-code/` and persist across addon restarts.
+
+## Configuration
+
+**Note**: _Remember to restart the add-on when the configuration is changed._
+
+Example add-on configuration:
+
+```yaml
+log_level: info
+config_path: /share/my_path
+packages:
+  - mariadb-client
+init_commands:
+  - ls -la
 ```
 
-### File Access
+**Note**: _This is just an example, don't copy and paste it! Create your own!_
 
-The following directories are automatically available in VSCode:
+### Option: `log_level`
 
-- `/config` - Your Home Assistant configuration directory
-- `/addons` - Add-ons development directory
-- `/share` - Shared files directory
-- `/media` - Media files directory
-- `/backup` - Backups (read-only)
-- `/ssl` - SSL certificates (read-only)
+The `log_level` option controls the level of log output by the addon and can
+be changed to be more or less verbose, which might be useful when you are
+dealing with an unknown issue. Possible values are:
 
-### Development Workflow
+- `trace`: Show every detail, like all called internal functions.
+- `debug`: Shows detailed debug information.
+- `info`: Normal (usually) interesting events.
+- `warning`: Exceptional occurrences that are not errors.
+- `error`: Runtime errors that do not require immediate action.
+- `fatal`: Something went terribly wrong. Add-on becomes unusable.
 
-1. **Home Assistant Configuration**: Edit your `configuration.yaml` and other config files
-2. **Add-on Development**: Create and modify custom add-ons in the `/addons` directory
-3. **Scripts and Automations**: Write Python scripts and automation scripts
-4. **AI Assistance**: Use Claude Code CLI for code generation, debugging, and optimization
+Please note that each level automatically includes log messages from a
+more severe level, e.g., `debug` also shows `info` messages. By default,
+the `log_level` is set to `info`, which is the recommended setting unless
+you are troubleshooting.
 
-## Pre-installed Extensions
+### Option: `config_path`
 
-The add-on comes with extensions optimized for Home Assistant development:
+This option allows you to override the default path the add-on will open
+when accessing the web interface. For example, use a different
+configuration directory like `/share/myconfig` instead of `/config`. If set
+to `/root` then all the common folders of HA such as `/config`, `/ssl`,
+`/share`, etc. will appear as subfolders for each access.
 
-- **Home Assistant Config Helper**: Syntax highlighting and validation
-- **YAML**: Enhanced YAML editing with validation
-- **Material Design Icons**: Intellisense for MDI icons
-- **Claude Dev**: Additional AI coding assistance through the extension
-- **Python**: Full Python development support
-- **Prettier**: Code formatting for multiple languages
-- **ESLint**: JavaScript/TypeScript linting
-- **Error Lens**: Inline error display
-- **Auto Rename Tag**: Automatic HTML tag renaming
-- **Path Intellisense**: Autocomplete for file paths
+When not configured, the addon will automatically use the default: `/config`
 
-## Terminal Usage
+### Option: `packages`
 
-The integrated terminal provides full shell access with:
+Allows you to specify additional [Ubuntu packages][ubuntu-packages] to be
+installed in your shell environment (e.g., Python, PHP, Go).
 
-- **Claude Code CLI**: Available globally as `claude-code`
-- **Python**: Python 3.12 with pip
-- **Node.js**: Node.js 20.x with npm
-- **Git**: Version control
-- **Standard Linux tools**: curl, wget, nano, etc.
+**Note**: _Adding many packages will result in a longer start-up
+time for the add-on._
 
-## Troubleshooting
+### Option: `init_commands`
 
-### Add-on Won't Start
+Customize your VSCode environment even more with the `init_commands` option.
+Add one or more shell commands to the list, and they will be executed every
+single time this add-on starts.
 
-1. Check the add-on logs for error messages
-2. Verify your configuration syntax
-3. Ensure sufficient system resources are available
+## Resetting your VSCode settings to the add-on defaults
 
-### Claude Code CLI Not Working
+The add-on updates your settings to be optimized for use with Home Assistant.
+As soon as you change a setting, the add-on will stop doing that since it
+might be destructive. However, in case you changed some things, but want to
+return to the defaults as delivered by this add-on, do the following:
 
-1. Verify your API key is correctly saved in `/config/claude_api_key`
-2. Check that the file contains only the API key (no extra characters)
-3. Restart the add-on after adding the API key
-4. Check add-on logs for any API-related errors
+1. Open the Visual Studio Code editor.
+1. Click on `Terminal` in the top menu bar and click on `New Terminal`.
+1. Execute the following command in the terminal window: `reset-settings`.
+1. Done!
 
-### Performance Issues
+## Extension Warnings
 
-1. Increase system resources if possible
-2. Close unused browser tabs
-3. Reduce the number of open files in VSCode
-4. Consider using a more powerful device for development
+You may see warnings like "This extension is enabled in the Local Extension Host because it prefers to run there." These are normal and expected when using code-server (browser-based VSCode). The warnings are informational only and do not affect functionality.
 
-### Extensions Not Loading
+### Why These Warnings Appear
 
-1. Restart the add-on
-2. Check add-on logs for extension installation errors
-3. Clear browser cache and reload VSCode
+- **code-server** runs extensions in a "Local Extension Host" environment
+- Some extensions are designed for the full VSCode desktop application
+- The warnings indicate where the extension is running, not that it's broken
 
-## Security Considerations
+### What You Can Do
 
-- **API Key Security**: Keep your Claude API key secure and never share it
-- **File Access**: The add-on has read/write access to your Home Assistant configuration
-- **Network Access**: The add-on requires internet access for Claude Code CLI functionality
-- **Authentication**: Access is controlled through Home Assistant's authentication system
+1. **Ignore the warnings**: Extensions still work normally despite the warnings
+2. **Install additional extensions**: Use the extension marketplace to add extensions optimized for code-server
+3. **Hide notifications**: You can dismiss persistent notifications in the VSCode interface
 
-## Backup Recommendations
+The pre-installed extensions are specifically chosen for compatibility with code-server and Home Assistant development.
 
-- **Configuration**: Regularly backup your `/config` directory
-- **VSCode Settings**: Your VSCode configuration is stored in `/data/vscode`
-- **API Keys**: Keep a secure backup of your API keys
+## Known issues and limitations
 
-## Updates
+- Can this add-on run on a Raspberry Pi? Yes, but only if you run a 64 bits
+  operating system. Also, see point below.
+- This add-on currently only supports AMD64 and aarch64/ARM64 machines.
+  Although we support ARM devices, please be aware, that this add-on is quite
+  heavy to run, and requires quite a bit of RAM. We do not recommended to run
+  it on devices with less than 4Gb of memory.
+- "Visual Studio Code is unable to watch for file changes in this large
+  workspace" (error ENOSPC)
 
-The add-on will notify you when updates are available. Always review the changelog before updating to understand what changes are included.
+  This issue is caused by your system not having enough file handles,
+  which causes VSCode to be unable to watch all your files. For HassOS,
+  currently the only option is to click on the little cog when the
+  notification appears and tell it to not show again. In case you have
+  a generic Linux setup (e.g., Ubuntu), follow this guide by Microsoft:
+
+  <https://code.visualstudio.com/docs/setup/linux#_visual-studio-code-is-unable-to-watch-for-file-changes-in-this-large-workspace-error-enospc>
+
+## Changelog & Releases
+
+This repository keeps a change log using [GitHub's releases][releases]
+functionality.
+
+Releases are based on [Semantic Versioning][semver], and use the format
+of `MAJOR.MINOR.PATCH`. In a nutshell, the version will be incremented
+based on the following:
+
+- `MAJOR`: Incompatible or major changes.
+- `MINOR`: Backwards-compatible new features and enhancements.
+- `PATCH`: Backwards-compatible bugfixes and package updates.
 
 ## Support
 
-For support and issues:
+Got questions?
 
-1. Check the [GitHub Issues](https://github.com/ddcash/n1k0-addons/issues)
-2. Review the add-on logs for error messages
-3. Consult the Home Assistant Community Forum
-4. Submit detailed bug reports with logs and configuration details
+You have several options to get them answered:
+
+- The [Home Assistant Community Add-ons Discord chat server][discord] for add-on
+  support and feature requests.
+- The [Home Assistant Discord chat server][discord-ha] for general Home
+  Assistant discussions and questions.
+- The Home Assistant [Community Forum][forum].
+- Join the [Reddit subreddit][reddit] in [/r/homeassistant][reddit]
+
+You could also [open an issue here][issue] GitHub.
+
+## Authors & contributors
+
+The original setup of this repository is by [Franck Nijhof][frenck].
+
+For a full list of all authors and contributors,
+check [the contributor's page][contributors].
+
+## License
+
+MIT License
+
+Copyright (c) 2019-2025 Franck Nijhof
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+[addon-badge]: https://my.home-assistant.io/badges/supervisor_addon.svg
+[addon]: https://my.home-assistant.io/redirect/supervisor_addon/?addon=a0d7b954_vscode&repository_url=https%3A%2F%2Fgithub.com%2Fhassio-addons%2Frepository
+[contributors]: https://github.com/hassio-addons/addon-vscode/graphs/contributors
+[discord-ha]: https://discord.gg/c5DvZ4e
+[discord]: https://discord.me/hassioaddons
+[forum]: https://community.home-assistant.io/t/home-assistant-community-add-on-visual-studio-code/107863?u=frenck
+[frenck]: https://github.com/frenck
+[issue]: https://github.com/hassio-addons/addon-vscode/issues
+[reddit]: https://reddit.com/r/homeassistant
+[releases]: https://github.com/hassio-addons/addon-vscode/releases
+[semver]: https://semver.org/spec/v2.0.0
+[ubuntu-packages]: https://packages.ubuntu.com

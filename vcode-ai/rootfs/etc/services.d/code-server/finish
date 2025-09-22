@@ -1,8 +1,0 @@
-#!/usr/bin/with-contenv bashio
-# ==============================================================================
-# Home Assistant Add-on: VSCode with Claude Code AI
-# Take down the S6 supervision tree when code-server fails
-# ==============================================================================
-
-bashio::log.info "Code-server stopped, stopping add-on..."
-/run/s6/basedir/bin/halt

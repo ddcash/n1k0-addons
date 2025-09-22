@@ -1,0 +1,56 @@
+#!/command/with-contenv bashio
+# shellcheck shell=bash
+# ==============================================================================
+# Home Assistant Community Add-on: Studio Code Server
+# Runs the code-server
+# ==============================================================================
+declare -a options
+declare config_path
+
+# Define addon config path
+ADDON_CONFIG_PATH="/addon_configs/local_vscode-claude"
+
+bashio::log.info 'Starting code-server...'
+
+config_path="/config"
+if bashio::config.has_value 'config_path'; then
+    config_path=$(bashio::config 'config_path')
+fi
+
+options+=(--port 1337)
+options+=(--user-data-dir "${ADDON_CONFIG_PATH}/vscode")
+options+=(--extensions-dir "${ADDON_CONFIG_PATH}/vscode/extensions")
+options+=(--host 0.0.0.0)
+options+=(--disable-telemetry)
+options+=(--disable-update-check)
+
+# Disable code authentication, we use HA authentication
+options+=(--auth none)
+
+# Export env variables for the Home Assistant extension
+export HASS_SERVER="http://supervisor/core"
+export HASS_TOKEN="${SUPERVISOR_TOKEN:-}"
+
+# Export Claude Code CLI environment variables
+export CLAUDE_CONFIG_DIR="${ADDON_CONFIG_PATH}/claude-code"
+
+# Set up Claude API key from addon config if it exists
+if bashio::fs.file_exists "${ADDON_CONFIG_PATH}/claude_api_key"; then
+    export ANTHROPIC_API_KEY="$(cat ${ADDON_CONFIG_PATH}/claude_api_key)"
+elif bashio::fs.file_exists '/config/claude_api_key'; then
+    export ANTHROPIC_API_KEY="$(cat /config/claude_api_key)"
+fi
+
+# Export Gemini CLI environment variables
+export GEMINI_CONFIG_DIR="${ADDON_CONFIG_PATH}/gemini-cli"
+
+# Set up Gemini API key from addon config if it exists
+if bashio::fs.file_exists "${ADDON_CONFIG_PATH}/gemini_api_key"; then
+    export GOOGLE_API_KEY="$(cat ${ADDON_CONFIG_PATH}/gemini_api_key)"
+elif bashio::fs.file_exists '/config/gemini_api_key'; then
+    export GOOGLE_API_KEY="$(cat /config/gemini_api_key)"
+fi
+
+# Run the code server
+cd "${config_path}" || bashio::exit.nok "Could not change working directory"
+exec code-server "${options[@]}" "${config_path}"

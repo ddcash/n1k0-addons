@@ -1,87 +1,122 @@
-ARG BUILD_FROM=ghcr.io/hassio-addons/base:16.3.2
+ARG BUILD_FROM=ghcr.io/hassio-addons/debian-base:7.8.3
 # hadolint ignore=DL3006
 FROM ${BUILD_FROM}
+
+# Confiure locale
+ENV \
+    LANG=en_US.UTF-8 \
+    LANGUAGE=en_US:en \
+    LC_ALL=en_US.UTF-8 \
+    PIP_BREAK_SYSTEM_PACKAGES=1
 
 # Set shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Environment variables
-ENV \
-    LANG="C.UTF-8" \
-    S6_BEHAVIOUR_IF_STAGE2_FAILS=2 \
-    S6_CMD_WAIT_FOR_SERVICES_MAXTIME=0 \
-    S6_CMD_WAIT_FOR_SERVICES=1
+# Copy Python requirements file
+COPY requirements.txt /tmp/requirements.txt
 
-# Install base packages
-RUN \
-    apk add --no-cache \
-        brotli=1.1.0-r2 \
-        git=2.45.2-r0 \
-        nginx=1.26.2-r0 \
-        openssh=9.7_p1-r4 \
-        openssh-keygen=9.7_p1-r4 \
-        python3=3.12.3-r1 \
-        py3-pip=24.0-r2 \
-        nodejs=20.15.1-r0 \
-        npm=10.8.0-r0 \
-        curl=8.9.0-r0 \
-        wget=1.24.5-r0 \
-        bash=5.2.26-r0 \
-    && apk add --no-cache --virtual .build-dependencies \
-        build-base=0.5-r3 \
-        libffi-dev=3.4.6-r0 \
-        openssl-dev=3.3.1-r3 \
-        python3-dev=3.12.3-r1 \
-    && pip3 install --no-cache-dir \
-        pylint==3.2.6 \
-        yamllint==1.35.1 \
-    && apk del --no-cache --purge .build-dependencies
+# Copy in extensions list
+COPY vscode.extensions /root/vscode.extensions
 
-# Download and install code-server
-ARG CODESERVER_VERSION="4.103.2"
-ARG TARGETARCH
+# Setup base system
+ARG BUILD_ARCH=amd64
+ARG CODE_SERVER_VERSION="v4.103.2"
+ARG HA_CLI_VERSION="4.40.1"
+# hadolint ignore=SC2181, DL3008
 RUN \
-    if [ "${TARGETARCH}" = "amd64" ]; then ARCH="x64"; fi \
-    && if [ "${TARGETARCH}" = "arm64" ]; then ARCH="arm64"; fi \
-    && curl -J -L -o /tmp/code-server.tar.gz \
-        "https://github.com/coder/code-server/releases/download/v${CODESERVER_VERSION}/code-server-${CODESERVER_VERSION}-linux-${ARCH}.tar.gz" \
+    apt-get update \
+    \
+    && apt-get install -y --no-install-recommends \
+        ack \
+        libarchive-tools \
+        build-essential \
+        colordiff \
+        git \
+        iputils-ping \
+        locales \
+        mariadb-client \
+        mosquitto-clients \
+        net-tools \
+        nmap \
+        openssh-client \
+        openssl \
+        python3-dev \
+        python3-venv \
+        python3 \
+        unzip \
+        uuid-runtime \
+        wget \
+        zip \
+        zsh \
+        less \
+        nodejs \
+        npm \
+    \
+    && sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen \
+    && locale-gen \
+    \
+    && curl https://bootstrap.pypa.io/get-pip.py | python3 \
+    \
+    && npm install -g @anthropic-ai/claude-code@latest \
+    && npm install -g @google/gemini-cli@latest \
+    \
+    && if [[ "${BUILD_ARCH}" = "aarch64" ]]; then ARCH="arm64"; fi \
+    && if [[ "${BUILD_ARCH}" = "amd64" ]]; then ARCH="amd64"; fi \
+    && curl -J -L -o /tmp/code.tar.gz \
+        "https://github.com/coder/code-server/releases/download/${CODE_SERVER_VERSION}/code-server-${CODE_SERVER_VERSION#v}-linux-${ARCH}.tar.gz" \
     && mkdir -p /usr/local/lib/code-server \
-    && tar zxvf /tmp/code-server.tar.gz --strip 1 -C /usr/local/lib/code-server \
+    && tar zxvf \
+        /tmp/code.tar.gz \
+        --strip 1 -C /usr/local/lib/code-server \
+    \
     && ln -s /usr/local/lib/code-server/bin/code-server /usr/local/bin/code-server \
-    && rm -rf /tmp/code-server.tar.gz
-
-# Install Claude Code CLI
-RUN \
-    npm install -g @anthropic-ai/claude-code@latest \
-    && mkdir -p /root/.config
-
-# Create volumes for persistent data
-VOLUME ["/data"]
-
-# Create vscode extensions list
-COPY vscode.extensions /root/
-RUN \
-    mkdir -p /usr/local/lib/code-server/lib/vscode/extensions/ \
+    \
     && mkdir -p /root/.code-server/extensions \
-    && UUID="$(cat /proc/sys/kernel/random/uuid)" \
-    && while read -r ext; do \
-        vendor="$(echo "${ext}" | cut -d'.' -f1)"; \
-        slug="$(echo "${ext}" | cut -d'.' -f2-)"; \
-        version="$(curl -s "https://marketplace.visualstudio.com/items?itemName=${ext}" | grep -oP 'AssetUri.*?".*?vsix' | head -1 | grep -oP '/[^/]+/[^/]+/' | grep -oP '[0-9]+\.[0-9]+\.[0-9]+')"; \
-        echo "Installing ${ext} version ${version}..."; \
-        curl -JL \
-            -H "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
-            -o "/tmp/${ext}-${version}.vsix" \
-            "https://${vendor}.gallery.vsservices.visualstudio.com/_apis/public/gallery/publisher/${vendor}/extension/${slug}/${version}/assetbyname/Microsoft.VisualStudio.Services.VSIXPackage"; \
-        mkdir -p "/usr/local/lib/code-server/lib/vscode/extensions/${ext}-${version}"; \
-        unzip -q "/tmp/${ext}-${version}.vsix" -d "/tmp/${ext}"; \
-        mv "/tmp/${ext}/extension/"* "/usr/local/lib/code-server/lib/vscode/extensions/${ext}-${version}/"; \
-        rm -rf "/tmp/${ext}" "/tmp/${ext}-${version}.vsix"; \
-    done < /root/vscode.extensions
+    \
+    && curl -L -s -o /usr/bin/ha \
+        "https://github.com/home-assistant/cli/releases/download/${HA_CLI_VERSION}/ha_${BUILD_ARCH}" \
+    && chmod a+x /usr/bin/ha \
+    \
+    && git clone --branch master --single-branch --depth 1 \
+        "https://github.com/robbyrussell/oh-my-zsh.git" ~/.oh-my-zsh \
+    \
+    && git clone --branch master --single-branch --depth 1 \
+        "https://github.com/zsh-users/zsh-autosuggestions" \
+        ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions \
+    && git clone --branch master --single-branch --depth 1 \
+        "https://github.com/zsh-users/zsh-syntax-highlighting.git" \
+        ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting \
+    \
+    && sed -i -e "s#bin/bash#bin/zsh#" /etc/passwd \
+    \
+    && update-alternatives \
+        --install /usr/bin/python python /usr/bin/python3 10 \
+    \
+    && pip3 install --no-cache-dir -r /tmp/requirements.txt \
+    \
+    && apt-get purge -y --auto-remove \
+        build-essential \
+        libarchive-tools \
+        python3-dev \
+        uuid-runtime \
+    \
+    && find /usr/local \
+        \( -type d -a -name test -o -name tests -o -name '__pycache__' \) \
+        -o \( -type f -a -name '*.pyc' -o -name '*.pyo' \) \
+        -exec rm -rf '{}' + \
+    \
+    && rm -fr \
+        /root/.cache \
+        /tmp/* \
+        /var/{cache,log}/* \
+        /var/lib/apt/lists/*
 
-# Copy files for add-on
+# Copy root filesystem
 COPY rootfs /
-RUN chmod a+x /etc/services.d/*/run /etc/services.d/*/finish
+
+# Health check
+HEALTHCHECK \
+    CMD curl --fail http://127.0.0.1:1337/healthz || exit 1
 
 # Build arguments
 ARG BUILD_ARCH
@@ -99,15 +134,15 @@ LABEL \
     io.hass.arch="${BUILD_ARCH}" \
     io.hass.type="addon" \
     io.hass.version=${BUILD_VERSION} \
-    maintainer="ddcash" \
+    maintainer="Franck Nijhof <frenck@addons.community>" \
     org.opencontainers.image.title="${BUILD_NAME}" \
     org.opencontainers.image.description="${BUILD_DESCRIPTION}" \
-    org.opencontainers.image.vendor="N1K0 Home Assistant Add-ons" \
-    org.opencontainers.image.authors="ddcash" \
+    org.opencontainers.image.vendor="Home Assistant Community Add-ons" \
+    org.opencontainers.image.authors="Franck Nijhof <frenck@addons.community>" \
     org.opencontainers.image.licenses="MIT" \
-    org.opencontainers.image.url="https://github.com/ddcash/n1k0-addons" \
-    org.opencontainers.image.source="https://github.com/ddcash/n1k0-addons/tree/main/vcode-ai" \
-    org.opencontainers.image.documentation="https://github.com/ddcash/n1k0-addons/tree/main/vcode-ai/README.md" \
+    org.opencontainers.image.url="https://addons.community" \
+    org.opencontainers.image.source="https://github.com/${BUILD_REPOSITORY}" \
+    org.opencontainers.image.documentation="https://github.com/${BUILD_REPOSITORY}/blob/main/README.md" \
     org.opencontainers.image.created=${BUILD_DATE} \
     org.opencontainers.image.revision=${BUILD_REF} \
     org.opencontainers.image.version=${BUILD_VERSION}

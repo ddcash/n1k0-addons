@@ -1,0 +1,39 @@
+#!/command/with-contenv bashio
+# shellcheck shell=bash
+# ==============================================================================
+# Home Assistant Add-on: VSCode with Claude Code AI
+# Installs VSCode extensions on first run
+# ==============================================================================
+
+ADDON_CONFIG_PATH="/addon_configs/local_vscode-claude"
+EXTENSIONS_INSTALLED_FLAG="${ADDON_CONFIG_PATH}/vscode/.extensions_installed"
+
+bashio::log.info "Checking VSCode extensions installation..."
+
+# Only install extensions if not already done or if extensions directory is empty
+if ! bashio::fs.file_exists "${EXTENSIONS_INSTALLED_FLAG}" || [ -z "$(ls -A ${ADDON_CONFIG_PATH}/vscode/extensions 2>/dev/null)" ]; then
+    bashio::log.info "Installing VSCode extensions for the first time..."
+
+    # Ensure directories exist
+    mkdir -p ${ADDON_CONFIG_PATH}/vscode/extensions
+
+    # Install extensions using code-server command line
+    while read -r ext; do
+        if [[ -n "${ext}" ]] && [[ "${ext}" != \#* ]]; then
+            extension_name="${ext%%#*}"
+            bashio::log.info "Installing extension: ${extension_name}"
+
+            # Use code-server to install extension
+            /usr/local/bin/code-server --install-extension "${extension_name}" \
+                --extensions-dir "${ADDON_CONFIG_PATH}/vscode/extensions" \
+                --user-data-dir "${ADDON_CONFIG_PATH}/vscode" \
+                || bashio::log.warning "Failed to install ${extension_name}"
+        fi
+    done < /root/vscode.extensions
+
+    # Mark extensions as installed
+    touch "${EXTENSIONS_INSTALLED_FLAG}"
+    bashio::log.info "Extensions installation completed"
+else
+    bashio::log.info "Extensions already installed, skipping..."
+fi

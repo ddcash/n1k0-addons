@@ -3,19 +3,20 @@
 ![Supports aarch64 Architecture][aarch64-shield]
 ![Supports amd64 Architecture][amd64-shield]
 
-A Visual Studio Code experience with Claude Code CLI integration, accessible through your browser and optimized for Home Assistant development.
+Visual Studio Code with Claude Code CLI and Gemini CLI integration for AI-powered development in Home Assistant.
 
 ## About
 
-This add-on provides a browser-based Visual Studio Code experience with the powerful Claude Code CLI integrated, allowing you to leverage AI-powered development directly within your Home Assistant environment.
+This add-on provides a browser-based Visual Studio Code experience with integrated Claude Code CLI and Gemini CLI, giving you powerful AI-powered development assistance from multiple providers directly within your Home Assistant environment.
 
 ### Features
 
 - **Full VSCode Experience**: Complete Visual Studio Code interface accessible through your browser
-- **Claude Code Integration**: AI-powered coding assistance with Claude Code CLI pre-installed
+- **Dual AI CLI Support**: Both Claude Code CLI and Gemini CLI pre-installed for comprehensive AI assistance
+- **Claude Dev Extension**: Pre-installed extension for inline AI assistance
 - **Home Assistant Optimized**: Pre-configured with Home Assistant, YAML, and MDI extensions
+- **Persistent Configuration**: Both Claude Code CLI and Gemini CLI settings persist across restarts
 - **Secure Access**: Integrated with Home Assistant's authentication system
-- **Persistent Configuration**: Your settings, workspaces, and Claude Code CLI configuration (including MCP servers) are preserved between restarts
 - **Multi-Architecture Support**: Works on both amd64 and aarch64 systems
 
 ## Installation
@@ -23,89 +24,65 @@ This add-on provides a browser-based Visual Studio Code experience with the powe
 1. Navigate to Supervisor → Add-on Store in your Home Assistant instance
 2. Add this repository: `https://github.com/ddcash/n1k0-addons`
 3. Install the "VSCode with Claude Code AI" add-on
-4. Configure the add-on (see configuration section below)
+4. Configure your Claude API key (see documentation)
 5. Start the add-on
 
-## Configuration
+## AI CLI Setup
 
-### Add-on Configuration
-
-```yaml
-packages:
-  - example-package
-init_commands:
-  - echo "Hello World"
-config_path: "/config/vscode"
-log_level: info
-```
-
-### Option: `packages`
-
-Additional Alpine packages to install. Use this to add any additional tools or dependencies you need.
-
-### Option: `init_commands`
-
-Commands to run during the start of the add-on. Use this to run any initialization scripts or commands.
-
-### Option: `config_path`
-
-Custom path for VSCode configuration. If not specified, uses `/data/vscode`.
-
-### Option: `log_level`
-
-The log level for the add-on. Options: `trace`, `debug`, `info`, `notice`, `warning`, `error`, `fatal`.
-
-## Claude Code CLI Setup
+### Claude Code CLI
 
 To use Claude Code CLI features:
 
 1. Obtain an Anthropic API key from https://console.anthropic.com/
 2. Create a file containing your API key at one of these locations:
-   - `/config/claude_api_key` (recommended)
-   - `/data/claude-code/api_key` (persistent storage)
+   - `/addon_configs/local_vscode-claude/claude_api_key` (recommended for persistence)
+   - `/config/claude_api_key` (alternative location)
 3. Restart the add-on
-4. The Claude Code CLI will automatically be configured with your API key
+4. Use `claude-code` command in the integrated terminal
 
-### Persistent Configuration
+### Gemini CLI
 
-All Claude Code CLI configuration, including MCP servers, is stored in `/data/claude-code/` and persists across addon restarts and system reboots. This includes:
+To use Gemini CLI features:
 
-- API key configuration
-- MCP server configurations
-- Claude Code CLI settings and preferences
-- Custom configurations and profiles
+1. Obtain a Google AI API key from https://aistudio.google.com/app/apikey
+2. Create a file containing your API key at one of these locations:
+   - `/addon_configs/local_vscode-claude/gemini_api_key` (recommended for persistence)
+   - `/config/gemini_api_key` (alternative location)
+3. Restart the add-on
+4. Use `gemini` command in the integrated terminal
+
+## Pre-installed Extensions
+
+- **Home Assistant Config Helper**: Syntax highlighting and validation
+- **YAML**: Enhanced YAML editing capabilities
+- **Material Design Icons**: Intellisense for MDI icons
+- **Claude Dev**: AI-powered coding assistant extension
+- **Python**: Full Python development support
+- **ESPHome**: ESPHome development support
+- **Prettier**: Code formatting
+- **Error Lens**: Inline error display
 
 ## Usage
 
 1. After starting the add-on, click "OPEN WEB UI" to access VSCode
-2. Your Home Assistant configuration directory is automatically mounted and accessible
-3. Use the integrated terminal to run Claude Code CLI commands:
-   - `claude-code` - Start an interactive session
-   - `claude-code --help` - View available commands
-4. The Claude Dev extension is pre-installed for additional AI coding assistance
+2. Your Home Assistant configuration directory is automatically accessible
+3. Use the integrated terminal to run Claude Code CLI (`claude-code`) or Gemini CLI (`gemini`) commands
+4. Use the Claude Dev extension for inline AI assistance
+5. All AI CLI configurations persist automatically
 
-## Pre-installed Extensions
+## Persistent Data
 
-- **Home Assistant Extension**: Syntax highlighting and validation for Home Assistant configs
-- **YAML Support**: Enhanced YAML editing capabilities
-- **Material Design Icons**: Intellisense for MDI icons
-- **Claude Dev**: AI-powered coding assistant
-- **Python Support**: Full Python development environment
-- **Prettier**: Code formatting
-- **ESLint**: JavaScript/TypeScript linting
-- **Error Lens**: Inline error highlighting
+The following data persists across addon restarts:
+- VSCode configuration and settings
+- Installed extensions
+- Claude Code CLI configuration (`/addon_configs/local_vscode-claude/claude-code/`)
+- Gemini CLI configuration (`/addon_configs/local_vscode-claude/gemini-cli/`)
+- MCP server configurations
+- Workspace settings
 
-## Mapped Directories
+## Extension Warnings
 
-The following directories are mapped into the VSCode environment:
-
-- `/config` - Your Home Assistant configuration (read/write)
-- `/addons` - Add-ons directory (read/write)
-- `/backup` - Backup directory (read-only)
-- `/share` - Share directory (read/write)
-- `/ssl` - SSL directory (read-only)
-- `/media` - Media directory (read/write)
-- `/data` - Persistent addon data including Claude Code CLI configuration (read/write)
+You may see warnings like "This extension is enabled in the Local Extension Host because it prefers to run there." This is normal for code-server (browser-based VSCode). These warnings are informational only and don't affect functionality. The extensions work correctly despite these messages.
 
 ## Support
 
